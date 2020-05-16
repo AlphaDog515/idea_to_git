@@ -1,0 +1,395 @@
+// 索引的相关操作
+get _cat/indices?v
+put /hello_index
+delete hello_index
+
+// 新增文档
+put /movie_index/movie/1
+{ "id":1,
+  "name":"operation red sea",
+  "doubanScore":8.5,
+  "actorList":[  
+    {"id":1,"name":"zhang yi"},
+    {"id":2,"name":"hai qing"},
+    {"id":3,"name":"zhang han yu"}
+  ]
+}
+
+// 获取所有文档
+get movie_index/movie/_search
+
+// 查找指定id的文档
+get movie_index/movie/1
+
+// 修改文档
+post /movie_index/movie/3/_update
+{
+  "doc": {
+    "doubanScore":"8.1"
+  }
+}
+
+// 删除一个doc
+delete /movie_index/movie/3
+
+// 查询全部
+get movie_index/movie/_search
+{
+  "query":{
+    "match_all": {}
+  }
+}
+
+// 包含sea或operation或全部
+get movie_index/movie/_search
+{
+  "query":{
+    "match": {
+      "name": "sea operation"
+    }
+  }
+}
+
+get movie_index/movie/_search
+{
+  "query":{
+    "match": {
+      "actorList.name": "zhang"
+    }
+  }
+}
+
+// 不再使用分词技术
+get /movie_index/movie/_search
+{
+  "query": {
+    "match_phrase": {
+      "name": "operation red"
+    }
+  }
+}
+
+// 模糊匹配
+get /movie_index/movie/_search
+{
+  "query": {
+    "fuzzy": {
+      "name": "rdd"
+    }
+  }
+}
+
+// 查询后过滤
+get movie_index/movie/_search
+{
+  "query":{
+    "match": {
+      "name": "red"
+    }
+  },
+  "post_filter":{
+    "term":{
+      "actorList.id":3
+    }
+  }
+}
+
+// 查询前过滤
+get movie_index/movie/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"term": {"actorList.id": 3}},
+        {"term": {"actorList.id": 1}}],
+      "must": 
+        {"match": {"name": "sea"}}
+    }
+  }
+}
+
+// 或
+get /movie_index/movie/_search
+{
+  "query": {
+    "bool": {
+       "should": [
+         {"term": {"actorList.id": 1}},
+         {"term": {"actorList.id": 3}}]
+    }
+  }
+}
+
+// 与
+get movie_index/movie/_search
+{
+  "query":{
+    "bool":{
+      "must": [
+        {"term":{"name": "red"}},
+        {"term":{"actorList.id": 1}}
+      ]
+    }
+  }
+}
+
+// 非
+get movie_index/movie/_search
+{
+  "query":{
+    "bool": {
+      "must_not": [
+        {"term":{"actorList.id": 1}}
+      ]
+    }
+  }
+}
+
+
+// 范围查询
+GET movie_index/movie/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "range": {
+          "doubanScore": {
+            "gt": 8,
+            "lt": 9
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+// 排序
+get movie_index/_search
+{
+  "query":{
+    "match": {"name":"red operation"}
+  },
+  "sort": [
+    {
+      "doubanScore": {"order": "desc"}
+    }
+  ]
+}
+
+
+// 分页
+GET /movie_index/movie/_search
+{
+  "query": {
+    "match_all": {}
+  }, 
+  "from": 1,
+  "size": 1
+}
+
+
+// 查询指定字段
+GET /movie_index/movie/_search
+{
+  "_source": "name"
+}
+
+GET /movie_index/movie/_search
+{
+  "_source": ["name", "id", "actorList.id"]
+}
+
+GET /movie_index/movie/_search
+{
+  "query": {
+    "match": {
+      "name": "red"
+    }
+  }, 
+  "_source": ["name", "id", "actorList.id"]
+}
+
+
+
+
+// 聚合
+GET /movie_index/movie/_search
+{
+  "aggs": {
+    "group_by_actor_id": {
+      "terms": {
+        "field": "actorList.id"
+      }
+    },
+    "group_by_actor_name": {
+      "terms": {
+        "field": "actorList.name.keyword"
+      }
+    },
+    "group_by_douban_score":{
+      "terms": {
+        "field": "doubanScore"
+      }
+    }
+  }
+}
+
+
+
+// 聚合
+GET /movie_index/movie/_search
+{
+	"aggs": {
+	  "gourp_by_actor_name": {
+		"terms": {
+		  "field": "actorList.name.keyword",
+		  "order": {
+			"score_sum": "desc"
+		  }
+		},
+		"aggs": {
+		  "score_sum": {
+			"sum": {
+			  "field": "doubanScore"
+			}
+		  },
+		  "score_avg": {
+			"avg": {
+			  "field": "doubanScore"
+			}
+		  },
+		  "score_max": {
+			"max": {
+			  "field": "doubanScore"
+			}
+		  }
+		}
+	  }
+	}
+}
+
+
+
+
+
+// 分词
+GET /movie_index/_analyze
+{
+  "text": "我是中国人 i am a student一一列举奥利给",
+  "analyzer": "ik_smart"
+}
+
+GET /movie_index/_analyze
+{
+  "text": "我是中国人 i am a student一一列举奥利给",
+  "analyzer": "ik_max_word"
+}
+
+
+
+
+
+
+// 创建mapping
+put /movie_chn
+{
+  "mappings": {
+    "movie":{
+      "properties": {
+        "id":{
+          "type": "long"
+        },
+        "name":{
+          "type": "text"
+          , "analyzer": "ik_smart" 
+        },
+        "doubanScore":{
+          "type": "double"
+        },
+        "actorList":{
+          "properties": {
+            "id":{
+              "type":"long"
+            },
+            "name":{
+              "type":"keyword"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+PUT /movie_chn/movie/1
+{ "id":1,
+  "name":"红海行动",
+  "doubanScore":8.5,
+  "actorList":[  
+    {"id":1,"name":"张译"},
+    {"id":2,"name":"海清"},
+    {"id":3,"name":"张涵予"}
+   ]
+}
+
+PUT /movie_chn/movie/2
+{
+  "id":2,
+  "name":"湄公河行动",
+  "doubanScore":8.0,
+  "actorList":[  
+    {"id":3,"name":"张涵予"}
+  ]
+}
+
+PUT /movie_chn/movie/3
+{
+  "id":3,
+  "name":"红海事件",
+  "doubanScore":5.0,
+  "actorList":[  
+    {"id":4,"name":"张晨"}
+  ]
+}
+
+
+
+GET /movie_chn/movie/_search
+{
+  "query": {
+    "match": {
+      "name": "红海"
+    }
+  }
+}
+
+GET /movie_chn/movie/_search
+{
+  "query": {
+    "term": {
+      "actorList.name": "张"  
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

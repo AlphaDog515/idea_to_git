@@ -1,0 +1,29 @@
+业务逻辑：某几个城市数据量激增，可以单独处理
+程序层面：少用distinct，先group by然后count
+调参方面：参数
+
+
+
+发现问题：某个task运行很慢
+
+分析问题：
+根据webUI定位stage以及各task分配的数据量，观察运行时间
+根据代码分析stage所处的算子，抽样countKey统计分析倾斜的key的分布情况
+
+
+解决方案：
+（1）数据预处理：观测能否使用hive ETL预聚合数据，适用于Java代码频繁调用spark作业时；
+
+（2）不重要的key可以过滤：过滤少数导致倾斜的key：
+
+（3）提高reduce阶段的并行度：spark.sql.shuffle.partitions默认是200.可以提高！
+如果某一个key对应的数据量很大，失效！
+
+（4）两阶段聚合：局部聚合+全局聚合【key加上随机数，然后去掉】，适合聚合类的shuffle，join类的shuffle操作不行！
+
+（5）将reduce join转化为map join，不使用join操作，使用广播变量与map类算子实现join！
+
+（6）两大RDDjoin，先采样分离大的Key形成新的RDD，然后大key的RDD增加前缀，
+对应数据需要扩容n倍，然后join！，适用于倾斜key很少的情况！
+
+灵活使用！

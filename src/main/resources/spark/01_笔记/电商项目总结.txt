@@ -1,0 +1,40 @@
+离线阶段
+行为数据流：埋点日志用户行为数据 -> nginx服务器 -> springboot日志服务器 -> 
+		-> flume日志采集 -> 写到Kafka不同的topic
+		-> 通过flume保存到hdfs
+		-> 使用hive/spark分析数据建立分层数仓
+
+业务数据流：MySQL业务数据 -> sqoop工具导入到hdfs -> 使用hive/spark分析数据建立分层数仓
+
+
+
+实时阶段
+需求1：日活统计
+数据流：埋点日志用户启动行为数据 -> nginx服务器 -> springboot日志服务器 
+		-> 【flume采集】写到Kafka不同的topic
+		-> SparkStreaming消费Kafka数据 -> 借助redis去重 -> 通过phoenix写到hbase
+		-> mapper查询hbase数据发布接口
+
+需求2：销售额分时统计
+数据流：canal监控MySQL中order_info表的变化 -> Kafka生产者写到topic 
+		-> SparkStreaming消费Kafka数据 -> 通过phoenix写到hbase
+		-> mapper查询hbase数据发布接口
+
+需求3：优惠券实时预警
+数据流：埋点日志用户事件行为数据 -> nginx服务器 -> springboot日志服务器 -> 写到Kafka的topic
+		-> SparkStreaming消费Kafka数据 -> 数据保存到ElasticSearch -> Kibana展示
+		
+需求4：灵活查询，实时分析用户的购买行为，如：男女，年龄等比例
+数据流：canal监控MySQL中order_info，order_detail表的变化 
+		-> Kafka生产者写到topic 
+		-> SparkStreaming消费Kafka数据 
+		-> 双流join创建宽表，借助redis处理延迟数据
+		-> 保存数据到ES -> 查询数据发布接口
+
+
+日志和业务的数据是分开的，flume采集日志文件较为合理，支持的更好一些，Kafka作为中间件，
+用户行为写入日志，配置log埋点日志影响性能！日志中还有服务器日志，
+
+		
+		
+		

@@ -1,0 +1,122 @@
+Spark常见端口
+
+	spark master web UI默认端口为8080，当系统有其它程序也在使用该接口（比如:Tomcat）时，
+		启动master时也不会报错，spark自己会改用其它端口，自动端口号加1,也可以自行设置,
+		可以修改：$SPARK_HOME/sbin/start-master.sh
+		
+	8080	master WEB端口
+	8081	worker WEB端口
+	7077	master通信端口
+	18080	spark历史服务器端口，任务结束以后才可以看到
+	4040	spark当前执行的任务页面查看端口
+		（如：使用spark-shell启动spark，此时的任务可以在4040端口页面查看），
+		如果任务结束了4040端口页面不能访问！
+
+
+
+
+	kettle
+	zsh + oh-my-zsh + autojump  //优化shell
+
+
+	bin/spark-submit --class org.apache.spark.examples.SparkPi --master local[2] ./examples/jars/spark-examples_2.11-2.1.1.jar 100
+
+	// Stand alone模式
+	bin/spark-submit \
+	--class org.apache.spark.examples.SparkPi \
+	--master spark://hadoop103:7077 \
+	--deploy-mode cluster \
+	--executor-memory 1G \
+	--total-executor-cores 6 \
+	--executor-cores 2 \
+	./examples/jars/spark-examples_2.11-2.1.1.jar 100
+	
+	
+	
+
+	// 自定义wordcount
+	bin/spark-submit \
+	--master yarn \
+	--deploy-mode client \	// 选择client 或者 cluster 一个结果在本地控制台，一个在集群driver中
+	--class com.day01.HelloWorld \
+	/opt/module/spark-yarn/testdata/spark-core/target/spark-core-1.0-SNAPSHOT.jar hdfs://hadoop102:9000/testdata
+
+	// 防止lzo压缩报错，在spark-defaults.conf中配置：
+	spark.jars=/opt/module/hadoop-2.7.2/share/hadoop/common/hadoop-lzo-0.4.20.jar
+		
+		
+	spark中切片数量，分区数量，task数量相等！
+	
+	
+
+算子
+	map			mapPartitions	mapPartitionsWithIndex  	flatMap 	filter	
+	glom		groupBy			sortBy						sample   
+	coalesce	repartition		pipe							
+	subtract	intersection 	cartesian	
+	zip			zipWithIndex	zipPartitions
+	
+	partitionBy
+	groupByKey
+	reduceByKey	
+	foldByKey
+	aggregateByKey	
+	combineByKey
+	sortByKey
+	mapvalues
+	join	leftOuterJoin	rightOuterJoin	fullOuterJoin
+	cogroup
+	repartitionAndSortWithinPartitions
+	
+	reduce  	count	first	countByKey	
+	collect		take	takeOrdered
+	aggregate	fold	
+	foreach
+	
+	
+	
+	sortBy算子虽然是转换算子，但是在分区数大于1的时候会起一个job，里面调用了rangePartitioner！
+	
+	reduceByKey等需要shuffle操作的算子，即使不设置缓存，spark也会自动给我们设置，
+	当一个节点 shuffle 失败了避免重新计算整个输入；
+	
+	reduceByKey中如果所有的key都不同，不会走这个逻辑！
+	
+	Error:scalac: Scala compiler JARs not found报这个错写在Scala插件以后，重新安装！
+	redis关闭：在客户端发送shutdown命令！然后quit！
+	
+	
+	常用的隐式导入：
+		将集合对象转化为json：
+		import org.json4s.DefaultFormats
+		Serialization.write(value)(DefaultFormats)
+		// implicit val df = org.json4s.DefaultFormats
+	
+		rdd、df、ds之间的相互转换：
+		低级转高级：import spark.implicits._
+	
+		写到phoenix：import org.apache.phoenix.spark._
+		
+		// Java互转：import scala.collection.JavaConversions._
+		
+	// 异常	
+	import scala.util.control.Breaks._
+	
+	
+常见的配置参数：
+	spark.streaming.backpressure.enabled	// 是否开启背压机制，默认false
+	
+	
+	spark.memory.offHeap.enabled  // 是否启用堆外内存
+	spark.memory.offHeap.size	  // 设置大小	
+	
+	spark.shuffle.file.buffer		// map端缓冲设置，默认32KB	
+	spark.reducer.maxSizeInFlight	// reduce拉取缓冲区大小，默认48M
+	
+	spark.shuffle.io.maxRetries		// reduce端拉取数据的重试次数，默认为3
+	spark.shuffle.io.retryWait		// reduce端拉取数据等待间隔，默认5s
+	
+	spark.shuffle.sort.bypassMergeThreshold	   // SortShuffle排序操作阈值，默认200
+	
+	
+	
